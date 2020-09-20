@@ -148,6 +148,7 @@ impl BasicCmdBuilder {
 
 impl Builder<BasicCmd> for BasicCmdBuilder {
     fn build(self) -> BasicCmd {
+        assert!(!self.args.is_empty(), "args must at least contain the executable name!");
         BasicCmd {
             executable: self.executable.expect("Must have value"),
             args: self.args,
