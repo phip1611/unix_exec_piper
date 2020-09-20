@@ -34,6 +34,7 @@
 ///
 /// ```
 /// /*
+/// child process 0    child process 1    child process n
 /// _______________    _______________    _________
 /// | cat foo.txt |    | grep -i abc |    | wc -l |
 /// ---------------    ---------------    ---------
@@ -53,7 +54,8 @@ pub enum PipeEnd {
     Write = 1,
 }
 
-/* _______________    _______________    _________
+/* child process 0    child process 1    child process n
+ * _______________    _______________    _________
  * | cat foo.txt |    | grep -i abc |    | wc -l |
  * ---------------    ---------------    ---------
  *             ^        ^         ^        ^

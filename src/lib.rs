@@ -34,8 +34,8 @@ mod pipe;
 pub fn execute_piped_cmd_chain(cmds: &CmdChain) -> Vec<libc::pid_t> {
     let mut pids: Vec<libc::pid_t> = vec![];
 
-    let mut pipe_to_current = Option::None;
-    let mut pipe_to_next = Option::None;
+    let mut pipe_to_current: Option<Pipe> = Option::None;
+    let mut pipe_to_next: Option<Pipe> = Option::None;
     for i in 0..cmds.length() {
         let cmd = &cmds.cmds()[i];
 
