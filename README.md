@@ -1,4 +1,4 @@
-# unix_exec_piper: A library written in Rust that exec's multiple commands and connects them with pipes.
+# unix_exec_piper: A library written in Rust that execs multiple commands and connects them with pipes.
 
 ## TL;DR;
 My library basically does the functionality that happens when you type `cat file.txt | grep -i | wc -l` 
