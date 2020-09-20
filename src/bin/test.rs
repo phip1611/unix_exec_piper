@@ -22,8 +22,7 @@
     SOFTWARE.
 */
 
-use unix_exec_piper::execute_piped_cmd_chain;
-use unix_exec_piper::data::{CmdChainBuilder, BasicCmdBuilder, Builder};
+use unix_exec_piper::{execute_piped_cmd_chain, CmdChainBuilder, BasicCmdBuilder, Builder};
 
 fn main() {
     // Test with the "testfile_65kb.txt". If piping between processes

@@ -22,12 +22,15 @@
     SOFTWARE.
 */
 
-use crate::data::{CmdChain, BasicCmd};
-use crate::pipe::Pipe;
+pub use crate::data::{CmdChain, BasicCmd, CmdChainBuilder, BasicCmdBuilder, Builder};
+// public in case someone want to use this abstraction
+pub use crate::pipe::Pipe;
 
 mod libc_util;
-pub mod data;
+mod data;
 mod pipe;
+
+//
 
 /// Runs a command chain. The parent process creates n childs and
 /// connects them (stdout => stdin) together via pipes.
