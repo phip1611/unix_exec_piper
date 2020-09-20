@@ -51,6 +51,6 @@ Pipes communicates across process boundaries in the following way:
                        (current child)
             -Pipe to Current-   -Pipe to Next-
             
-Each process uses `pipe_to_current` (if present) as "read end" (as it's `stdin`) and
+Each process uses `pipe_to_current` (if present) as "read end" (as its `stdin`) and
 `pipe_to_current` (if present) as "write end" 
 (duplicate it's `STDOUT` `file descriptor` into the write end of the pipe).
