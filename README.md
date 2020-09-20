@@ -12,7 +12,7 @@ Important main parts of the library are `pipe.rs` and `lib.rs :: execute_piped_c
 You might build a shell around this library (if it gets more functionality in the future).
 
 ## Basics you need to know
-Please make yourself familiar with the `UNIX/Poxix` concepts:
+Please make yourself familiar with the `UNIX/Posix` concepts:
 - `pipe()`
 - `fork()`
 - `file descriptors` and *"Everything is a file"*
