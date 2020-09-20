@@ -35,7 +35,7 @@ checksum = "f2f96b10ec2560088a8e76961b00d47107b3a625fecb76dedb29ee7ccbf98235"
 
 [[package]]
 name = "unix_exec_piper"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "errno",
  "libc",
