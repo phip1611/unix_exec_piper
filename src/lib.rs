@@ -114,7 +114,7 @@ pub fn execute_piped_cmd_chain(cmds: &CmdChain) -> Vec<libc::pid_t> {
 }
 
 /// Handles initial input redirect (from file).
-pub fn initial_ir(cmd: &BasicCmd) {
+fn initial_ir(cmd: &BasicCmd) {
     let fd = unsafe {
         libc::open(
             cmd.in_red_path_cstring().unwrap().as_ptr(),
@@ -132,7 +132,7 @@ pub fn initial_ir(cmd: &BasicCmd) {
 }
 
 /// Handles final output redirect (to file).
-pub fn final_or(cmd: &BasicCmd) {
+fn final_or(cmd: &BasicCmd) {
     let fd = unsafe {
         libc::open(
             cmd.out_red_path_cstring().unwrap().as_ptr(),
