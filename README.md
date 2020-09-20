@@ -19,7 +19,7 @@ Please make yourself familiar with the `UNIX/Posix` concepts:
 - `exec()`
 
 ## Supported features
-- Creating pipes between processes where `STDOUT` of one process gets connected with 
+- Creating pipes between processes where `STDOUT` of one process gets connected to 
 `STDIN` of the next process. \
   (`$ cat file.txt | grep -i | wc -l`) 
 - I/O redirection into files \
