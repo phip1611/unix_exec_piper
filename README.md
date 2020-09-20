@@ -25,9 +25,12 @@ Please make yourself familiar with the `UNIX/Posix` concepts:
 - I/O redirection into files \
   `$ cat < file.txt | grep -i | wc -l > out.txt`
 
-## (not yet) supported
+## not (yet) supported features
 - I/O redirection with `STDERR`
 - a lot of other redirection primitives listed here: https://tldp.org/LDP/abs/html/io-redirection.html
+
+## example
+See `src/bin/example.rs`.
 
 ## Basic idea
 The parent process loops `n` times (for `n` commands) and creates `n-1` `Pipe`s. Therefore `n` child processes
