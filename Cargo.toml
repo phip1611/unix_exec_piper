@@ -1,0 +1,19 @@
+[package]
+name = "unix_exec_piper"
+version = "0.1.0"
+authors = ["Philipp Schuster <phip1611@gmail.com>"]
+edition = "2018"
+keywords = ["unix", "pipe", "fork", "exec", "posix"]
+categories = ["Operating systems" ]
+description = "unix_exec_piper helps you to exec multiple commands where STDOUT of one process is connected to STDIN of the next process. This is what a shell (like bash) does internally."
+readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/phip1611/unix_exec_piper"
+repository = "https://github.com/phip1611/unix_exec_piper"
+documentation = "https://docs.rs/unix_exec_piper/"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.77"
+errno = "0.2.6"
