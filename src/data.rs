@@ -25,41 +25,59 @@
 use std::ffi::CString;
 use crate::libc_util::{construct_libc_cstring, construct_libc_cstring_arr};
 
+/// Common trait for the two builders.
 pub trait Builder<To>  {
     fn build(self) -> To;
 }
 
+/// A basic command is a parsed form of for example
+///  * `cat < in.txt`, or
+///  * `tee file.txt`, or
+///  * `wc -l > out.txt`
+/// inside `cat < in.txt | tee file.txt | wc -l > out.txt &`.
 #[derive(Debug)]
 pub struct BasicCmd {
+    /// Absolute or relative path (or no path at all; just name)
     executable: String,
+    /// Args including the executable name as first argument (Posix convention; or UNIX, don't know)
     args: Vec<String>,
+    /// Optional the file for the input redirect (only for first command in the chain).
     in_red_path: Option<String>,
+    /// Optional the file for the output redirect (only for last command in the chain).
     out_red_path: Option<String>,
+    /// Whether it's the first command in the chain.
     is_first: bool,
+    /// Whether it's the last command in the chain.
     is_last: bool,
 }
 
 impl BasicCmd {
 
+    /// Getter for executable.
     pub fn executable(&self) -> &str {
         &self.executable
     }
+    /// Getter for args.
     pub fn args(&self) -> &Vec<String> {
         &self.args
     }
+    /// Getter for in_red_path.
     pub fn in_red_path(&self) -> &Option<String> {
         &self.in_red_path
     }
+    /// Getter for in_red_path.
     pub fn out_red_path(&self) -> &Option<String> {
         &self.out_red_path
     }
-
+    /// Getter for is_first.
     pub fn is_first(&self) -> bool {
         self.is_first
     }
+    /// Getter for is_last.
     pub fn is_last(&self) -> bool {
         self.is_last
     }
+    /// Getter for is_in_middle.
     pub fn is_in_middle(&self) -> bool {
         !self.is_first && !self.is_last
     }
@@ -83,19 +101,23 @@ impl BasicCmd {
         argv as *const *const libc::c_char
     }
 
+    /// Constructs a CString for executable.
     pub fn executable_cstring(&self) -> CString {
         CString::new(self.executable.clone()).unwrap()
     }
 
+    /// Constructs a CString for out_red_path.
     pub fn out_red_path_cstring(&self) -> Option<CString> {
         self.out_red_path.clone().map(|x| CString::new(x).unwrap())
     }
 
+    /// Constructs a CString for in_red_path.
     pub fn in_red_path_cstring(&self) -> Option<CString> {
         self.in_red_path.clone().map(|x| CString::new(x).unwrap())
     }
 }
 
+/// Builder for `BasicCmd`.
 #[derive(Debug)]
 pub struct BasicCmdBuilder {
     executable: Option<String>,
@@ -147,6 +169,8 @@ impl BasicCmdBuilder {
 }
 
 impl Builder<BasicCmd> for BasicCmdBuilder {
+
+    /// Builds a `BasicCmd`-object, if self is valid.
     fn build(self) -> BasicCmd {
         assert!(!self.args.is_empty(), "args must at least contain the executable name!");
         BasicCmd {
@@ -160,33 +184,41 @@ impl Builder<BasicCmd> for BasicCmdBuilder {
     }
 }
 
+/// A command chain is the unit that gets executed. It's basically a
+/// parsed form of:
+///  * `ps`
+///  * `ls -l`
+///  * `cat < in.txt | tee file.txt | wc -l > out.txt &`
+/// It knows whether it should put the started process(es) in background
+/// or in foreground (blocking/waiting when executed).
 #[derive(Debug)]
 pub struct CmdChain {
-    // TODO implement in future
+    /// Whether the waiting for the processes should be done
+    /// blocking or non-blocking.
     background: bool,
+    /// All commands in correct order.
     cmds: Vec<BasicCmd>,
 }
 
 impl CmdChain {
 
-    pub fn new(background: bool,
-               cmds: Vec<BasicCmd>) -> Self {
-        Self { background, cmds }
-    }
-
+    /// Getter for background.
     pub fn background(&self) -> bool {
         self.background
     }
 
+    /// Getter for cmds.
     pub fn cmds(&self) -> &Vec<BasicCmd> {
         &self.cmds
     }
 
+    /// Getter for cmds.len().
     pub fn length(&self) -> usize {
         self.cmds.len()
     }
 }
 
+/// Builder for `CmdChain`.
 #[derive(Debug)]
 pub struct CmdChainBuilder {
     background: bool,
@@ -214,6 +246,7 @@ impl CmdChainBuilder {
 }
 
 impl Builder<CmdChain> for CmdChainBuilder {
+    /// Builds a `CmdChain`-object, if self is valid.
     fn build(mut self) -> CmdChain {
         let len = self.cmds.len();
         for i in 0..len {
