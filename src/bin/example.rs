@@ -22,9 +22,15 @@
     SOFTWARE.
 */
 
-use unix_exec_piper::{execute_piped_cmd_chain, CmdChainBuilder, BasicCmdBuilder, Builder};
+use unix_exec_piper::{execute_piped_cmd_chain, CmdChainBuilder, BasicCmdBuilder, Builder, update_process_states};
 
+/// Please note: My experience showed that somehow output redirection into a file make
+/// problems when executed from the IDE (CLion), at least when the path is inside src. Don't
+/// know what's happening there.
+/// If executing from IDE just use a path outside of src.
 fn main() {
+    // Example one: 'cat < src/bin/testfile_65kb.txt | cat | cat > foobar.txt'
+
     // Test with the "testfile_65kb.txt". If piping between processes
     // does not stuck, all FDs are closed properly.
     let cmd_chain = CmdChainBuilder::new()
@@ -32,7 +38,8 @@ fn main() {
             BasicCmdBuilder::new()
                 .set_executable("cat")
                 .add_arg("cat")
-                .add_arg("src/bin/testfile_65kb.txt")
+                //.add_arg("src/bin/testfile_65kb.txt")
+                .set_input_redirect_path("src/bin/testfile_65kb.txt")
         ).add_cmd(
         BasicCmdBuilder::new()
             .set_executable("cat")
@@ -41,26 +48,39 @@ fn main() {
         BasicCmdBuilder::new()
             .set_executable("cat")
             .add_arg("cat")
+            .set_output_redirect_path("foobar.txt")
     ).build();
     execute_piped_cmd_chain(&cmd_chain);
 
-    // Test input output redirect with files
+    println!();
+    println!("############################################################");
+    println!();
+
+    // Example two: 'ls -l | grep -i a &'
+    // (with waiting in background)
     let cmd_chain = CmdChainBuilder::new()
         .add_cmd(
             BasicCmdBuilder::new()
-                .set_executable("cat")
-                .add_arg("cat")
-                .set_input_redirect_path("src/bin/testfile_65kb.txt")
+                .set_executable("ls")
+                .add_arg("ls")
+                .add_arg("-l")
         )
         .add_cmd(
             BasicCmdBuilder::new()
-                .set_executable("cat")
-                .add_arg("cat")
-        ).add_cmd(
-        BasicCmdBuilder::new()
-            .set_executable("cat")
-            .add_arg("cat")
-            .set_output_redirect_path("src/bin/out.txt"))
+                .set_executable("grep")
+                .add_arg("grep")
+                .add_arg("-i")
+                .add_arg("a")
+        )
+        .set_background(true)
         .build();
-    execute_piped_cmd_chain(&cmd_chain);
+    let mut state = execute_piped_cmd_chain(&cmd_chain);
+    println!("Process states after dispatch: {:#?}", state);
+    while !update_process_states(&mut state, true) {
+        /*
+         * Example two wait non-blocking. This check could be done for example
+         * in a shell everytime the user presses 'enter'
+         */
+    }
+    println!("Process states after finished: {:#?}", state);
 }

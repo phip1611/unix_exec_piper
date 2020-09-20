@@ -263,13 +263,53 @@ impl Builder<CmdChain> for CmdChainBuilder {
     }
 }
 
-/*#[cfg(test)]
-mod tests {
-    use super::*;
+/// Process state. Describes the state of the child processes
+/// created per invocation of `execute_piped_cmd_chain()`.
+#[derive(Debug)]
+pub struct ProcessState {
+    /// The executable of the process. Useful for debugging primarily.
+    executable: String,
+    /// Pid.
+    pid: libc::pid_t,
+    /// If the process is finished or still running.
+    finished: bool,
+    /// Exit code. Only sane value if finished is true.
+    exit_code: libc::c_int,
+}
 
-    #[test]
-    fn test_foobar() {
-
+impl ProcessState {
+    /// Constructor.
+    pub fn new(executable: String, pid: i32) -> Self {
+        Self { executable, pid, finished: false, exit_code: -1 }
     }
 
-}*/
+    /// Updates the struct.
+    pub fn finish(&mut self, exit_code: i32) {
+        if self.finished {
+            panic!("Can't update process state because process is already finished!");
+        }
+        self.finished = true;
+        self.exit_code = exit_code;
+    }
+
+    /// Getter for pid.
+    pub fn pid(&self) -> i32 {
+        self.pid
+    }
+    /// Getter for finished. If false process
+    /// is still running.
+    pub fn finished(&self) -> bool {
+        self.finished
+    }
+
+    /// Getter for exit_code.
+    pub fn exit_code(&self) -> i32 {
+        assert!(self.finished, "A process must be finished before exit_code is a sane value!");
+        self.exit_code
+    }
+
+    /// Getter for executable.
+    pub fn executable(&self) -> &str {
+        &self.executable
+    }
+}

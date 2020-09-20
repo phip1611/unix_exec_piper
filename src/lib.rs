@@ -22,7 +22,7 @@
     SOFTWARE.
 */
 
-pub use crate::data::{CmdChain, BasicCmd, CmdChainBuilder, BasicCmdBuilder, Builder};
+pub use crate::data::{CmdChain, BasicCmd, CmdChainBuilder, BasicCmdBuilder, Builder, ProcessState};
 // public in case someone want to use this abstraction
 pub use crate::pipe::Pipe;
 
@@ -30,11 +30,10 @@ mod libc_util;
 mod data;
 mod pipe;
 
-//
 
 /// Runs a command chain. The parent process creates n childs and
 /// connects them (stdout => stdin) together via pipes.
-pub fn execute_piped_cmd_chain(cmds: &CmdChain) -> Vec<libc::pid_t> {
+pub fn execute_piped_cmd_chain(cmds: &CmdChain) -> Vec<ProcessState> {
     let mut pids: Vec<libc::pid_t> = vec![];
 
     let mut pipe_to_current: Option<Pipe> = Option::None;
@@ -94,23 +93,61 @@ pub fn execute_piped_cmd_chain(cmds: &CmdChain) -> Vec<libc::pid_t> {
         }
     }
 
-    // sync wait for all
-    if !cmds.background() {
-        for pid in &pids {
-            let mut status: libc::c_int = 0;
-            let res = unsafe { libc::waitpid(*pid, &mut status as * mut libc::c_int, 0) };
-            if res == -1 {
+    let mut i = 0;
+    let mut process_states: Vec<ProcessState> = pids.into_iter()
+        .map(|pid| {
+            let executable = cmds.cmds()[i].executable().to_owned();
+            i += 1;
+            ProcessState::new(executable, pid)
+        })
+        .collect();
+
+    update_process_states(&mut process_states, cmds.background());
+
+    process_states
+}
+
+/// Updates the process state values if the pid is done running.
+/// Returns true if all pids are finished, otherwise false.
+///
+///  * `wnohang` if waitpid uses WNOHANG-flag. In other words: true means "wait blocking"
+///     and false means "update but don't block".
+pub fn update_process_states(states: &mut Vec<ProcessState>, wnohang: bool) -> bool {
+    // decide whether we wait blocking or non blocking
+    let wait_flags: libc::c_int = if wnohang { libc::WNOHANG } else { 0 };
+    let mut all_finished = true;
+
+    // only check those that are not finished yet!
+    // Important, otherwise failures happen
+    states.into_iter()
+        .filter(|state| !state.finished())
+        .for_each(|state| {
+            let mut status_code: libc::c_int = 0;
+            let status_code_ptr = &mut status_code as * mut libc::c_int;
+
+            let res = unsafe { libc::waitpid(state.pid(), status_code_ptr, wait_flags) };
+
+            // IDE doesn't find this functions but they exist
+            // returns true if the child terminated normally
+            let exited_normally: bool = unsafe { libc::WIFEXITED(status_code) };
+
+            if wait_flags == libc::WNOHANG && res == 0 {
+                all_finished = false;
+                // not done yet
+            } else if res == -1 {
                 panic!("Failure during waitpid! {}", errno::errno());
             } else {
-                println!("Process {} finished with status code {}", pid, status);
+                if !exited_normally {
+                    eprintln!("Process did not exited normally! {:#?}", state);
+                }
+                // exit code (only if exited_normally is true)
+                let exit_code: libc::c_int = unsafe { libc::WEXITSTATUS(status_code) };
+
+                state.finish(exit_code);
+                println!("Process {} finished with status code {}", state.pid(), status_code);
             }
-        }
-    }
-
-    // else it's up to the caller
-    // probably using waitpid() with flag W_NOHANG
-
-    pids
+        });
+    all_finished
 }
 
 /// Handles initial input redirect (from file).
@@ -119,11 +156,10 @@ fn initial_ir(cmd: &BasicCmd) {
         libc::open(
             cmd.in_red_path_cstring().unwrap().as_ptr(),
             libc::O_RDONLY,
-            0644,
         )
     };
     if fd == -1 {
-        panic!("Input redirect path {} doesn't exist! {}", cmd.in_red_path().as_ref().unwrap(), errno::errno());
+        panic!("Input redirect path {} can't be opened/read! {}", cmd.in_red_path().as_ref().unwrap(), errno::errno());
     }
     let ret = unsafe { libc::dup2(fd, libc::STDIN_FILENO) };
     if ret == -1 {
@@ -134,13 +170,26 @@ fn initial_ir(cmd: &BasicCmd) {
 /// Handles final output redirect (to file).
 fn final_or(cmd: &BasicCmd) {
     let fd = unsafe {
-        libc::open(
+        // note that append won't work here because we only use the
+        // '> out.file' functionality but not '>> out.file' which
+        // would require the O_APPEND flag!
+
+        // open() doesn't work; file remains empty
+        // somehow fopen does some more magic..
+        /*libc::open(
             cmd.out_red_path_cstring().unwrap().as_ptr(),
-            libc::O_WRONLY | libc::O_CREAT
-        )
+            libc::O_WRONLY | libc::O_CREAT,
+            0644,
+        );*/
+        let file = libc::fopen(
+            cmd.out_red_path_cstring().unwrap().as_ptr(),
+            "w".as_ptr() as * const i8
+        );
+        // get file descriptor
+        libc::fileno(file)
     };
     if fd == -1 {
-        panic!("Output redirect path {} doesn't exist! {}", cmd.out_red_path().as_ref().unwrap(), errno::errno());
+        panic!("Output redirect path {} can't be opened/written! {}", cmd.out_red_path().as_ref().unwrap(), errno::errno());
     }
     let ret = unsafe { libc::dup2(fd, libc::STDOUT_FILENO) };
     if ret == -1 {
